@@ -121,7 +121,8 @@ large KeePass database file."
 
 ;;;###autoload
 (define-derived-mode keepass-mode tabulated-list-mode "KeePass"
-  "KeePass mode for interacting with the KeePass DB. \\{keepass-mode-map}."
+  "KeePass mode for interacting with the KeePass DB.
+\\{keepass-mode-map}."
   (setq-local keepass-mode-db buffer-file-truename)
   (when (zerop (length keepass-mode-password))
     (setq-local keepass-mode-password (keepass-mode-ask-password)))
