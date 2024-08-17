@@ -119,10 +119,20 @@ large KeePass database file."
     (define-key map (kbd "c") 'keepass-mode-copy-password)
    map))
 
+(defface keepass-mode-font-lock-directory
+  '((t (:inherit dired-directory)))
+  "Face used for directory entries."
+  :group 'keepass)
+
+(defconst keepass-mode-font-lock-keywords
+  '(("^.*/" (0 'keepass-mode-font-lock-directory t)))
+  "Font-lock keywords for `keepass-mode'.")
+
 ;;;###autoload
 (define-derived-mode keepass-mode tabulated-list-mode "KeePass"
   "KeePass mode for interacting with the KeePass DB.
 \\{keepass-mode-map}."
+  (setq-local font-lock-defaults '(keepass-mode-font-lock-keywords nil t))
   (setq-local keepass-mode-db buffer-file-truename)
   (when (zerop (length keepass-mode-password))
     (setq-local keepass-mode-password (keepass-mode-ask-password)))
