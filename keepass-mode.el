@@ -29,6 +29,22 @@
 
 ;;; Code:
 
+(defgroup keepass nil
+  "KeePass/KeePassXC integration with Emacs."
+  :group 'convenience
+  :tag "keepass-mode"
+  :prefix "keepass-mode-")
+
+(defcustom keepass-mode-ls-recursive t
+  "Should list entries recursively?
+If nil, it will only show the first level of entries and folders.
+
+Tip: Recursive list may be useful when searching for a key in a buffer with
+\\[isearch-forward] (command `isearch-forward').  However, it may be too slow with a
+large KeePass database file."
+  :type 'boolean
+  :group 'keepass)
+
 (defvar-local keepass-mode-db "")
 (defvar-local keepass-mode-password "")
 (defvar-local keepass-mode-group-path "")
@@ -121,7 +137,11 @@
 
 (defun keepass-mode-get-entries (group)
   "Get entry list for GROUP."
-  (nbutlast (split-string (shell-command-to-string (keepass-mode-command (keepass-mode-quote-unless-empty group) "ls")) "\n") 1))
+  (nbutlast (split-string (shell-command-to-string
+                           (keepass-mode-command (keepass-mode-quote-unless-empty group)
+                                                 (if keepass-mode-ls-recursive
+                                                     "ls -R -f"
+                                                   "ls"))) "\n") 1))
 
 (defun keepass-mode-concat-group-path (group)
   "Concat GROUP and group path."
