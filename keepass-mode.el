@@ -33,6 +33,11 @@
 (defvar-local keepass-mode-password "")
 (defvar-local keepass-mode-group-path "")
 
+(defcustom keepass-mode-force-valid-password t
+  "Flag to enforce the use of a valid password."
+  :type 'boolean
+  :group 'keepass-mode)
+
 (defun keepass-mode-select ()
   "Select an entry in current Keepass key."
   (interactive)
@@ -117,11 +122,11 @@
 
 (defun keepass-mode-get (field entry)
   "Retrieve FIELD from ENTRY."
-  (keepass-mode-get-field field (shell-command-to-string (keepass-mode-command (keepass-mode-quote-unless-empty entry) "show -s"))))
+  (keepass-mode-get-field field (keepass-mode-execute-command (keepass-mode-quote-unless-empty entry) "show -s")))
 
 (defun keepass-mode-get-entries (group)
   "Get entry list for GROUP."
-  (nbutlast (split-string (shell-command-to-string (keepass-mode-command (keepass-mode-quote-unless-empty group) "ls")) "\n") 1))
+  (nbutlast (split-string (keepass-mode-execute-command (keepass-mode-quote-unless-empty group) "ls") "\n") 1))
 
 (defun keepass-mode-concat-group-path (group)
   "Concat GROUP and group path."
@@ -133,11 +138,23 @@
 
 (defun keepass-mode-get-entry (entry)
   "Get ENTRY details."
-  (shell-command-to-string (keepass-mode-command (keepass-mode-quote-unless-empty entry) "show")))
+  (keepass-mode-execute-command (keepass-mode-quote-unless-empty entry) "show"))
 
 (defun keepass-mode-get-field (field entry)
   "Get FIELD from an ENTRY."
   (keepass-mode-get-value-from-alist field (keepass-mode-read-data-from-string entry)))
+
+(defun keepass-mode-execute-command (group command)
+  "Execute the KeePass COMMAND on GROUP.
+If `keepass-mode-force-valid-password' is set, the user will be asked a password
+until the valid password is given"
+  (let* ((command-line (keepass-mode-command group command)))
+    (when keepass-mode-force-valid-password
+      (setq command-line (concat "set -o pipefail; " command-line))
+      (while (/= (call-process-shell-command command-line nil nil nil) 0)
+        (setq-local keepass-mode-password (keepass-mode-ask-password))
+        (setq command-line (concat "set -o pipefail; " (keepass-mode-command group command)))))
+    (shell-command-to-string command-line)))
 
 (defun keepass-mode-command (group command)
   "Generate KeePass COMMAND to run, on GROUP."
