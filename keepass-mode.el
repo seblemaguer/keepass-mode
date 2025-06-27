@@ -140,7 +140,7 @@ large KeePass database file."
     (define-key map (kbd "u") 'keepass-mode-copy-url)
     (define-key map (kbd "b") 'keepass-mode-copy-username)
     (define-key map (kbd "c") 'keepass-mode-copy-password)
-   map))
+    map))
 
 (defface keepass-mode-font-lock-directory
   '((t (:inherit dired-directory)))
@@ -239,12 +239,10 @@ the group to process (the directory) and the keepass command (for example:
 
 (defun keepass-mode-command (group command &optional db)
   "Generate KeePass COMMAND to run, on GROUP."
-  (format "keepassxc-cli %s %s %s 2>&1 | \
-           grep -E -v '[Insert|Enter] password to unlock %s'"
+  (format "keepassxc-cli %s %s %s 2>&1 | grep -E -v '[Insert|Enter] password to unlock .*'"
           command
           (or db keepass-mode-db)
-          group
-          (or db keepass-mode-db)))
+          group))
 
 (defun keepass-mode-quote-unless-empty (text)
   "Quote TEXT unless it's empty."
@@ -257,8 +255,8 @@ the group to process (the directory) and the keepass command (for example:
 (defun keepass-mode-read-data-from-string (input)
   "Read data from INPUT string into an alist."
   (mapcar
-    (lambda (arg) (split-string arg ":" nil " "))
-    (split-string input "\n")))
+   (lambda (arg) (split-string arg ":" nil " "))
+   (split-string input "\n")))
 
 (defun keepass-mode-is-group-p (entry)
   "Return if ENTRY is a group."
