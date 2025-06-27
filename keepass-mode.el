@@ -45,9 +45,32 @@ large KeePass database file."
   :type 'boolean
   :group 'keepass)
 
+(defcustom keepass-mode-force-valid-password t
+  "Flag to enforce the use of a valid password."
+  :type 'boolean
+  :group 'keepass-mode)
+
+(defcustom keepass-mode-debug nil
+  "Flag to activate debugging mode. (/!\\ passwords will be shown in clear)"
+  :type 'boolean
+  :group 'keepass-mode)
+
+(defconst keepass-mode-output-buffer "*keepass-mode-command-output*"
+  "Buffer name used for the keepassxc-cli command output.")
+
+(defconst keepass-mode-debug-buffer "*keepass-mode-debug*"
+  "Buffer name used for the keepassxc-cli command debug.")
+
 (defvar-local keepass-mode-db "")
 (defvar-local keepass-mode-password "")
 (defvar-local keepass-mode-group-path "")
+
+(defun keepass-mode~log-debug (msg)
+  (when keepass-mode-debug
+    (with-current-buffer (get-buffer-create keepass-mode-debug-buffer)
+      (insert (format-time-string "[%d %H:%M:%S] " (current-time)))
+      (insert msg)
+      (insert "\n"))))
 
 (defun keepass-mode-select ()
   "Select an entry in current Keepass key."
@@ -98,14 +121,14 @@ large KeePass database file."
     (tabulated-list-init-header)
     (tabulated-list-print)))
 
-(defun keepass-mode-ask-password ()
+(defun keepass-mode-ask-password (&optional db)
   "Ask the user for the password."
-  (read-passwd (format "Password for %s: " keepass-mode-db)))
+  (read-passwd (format "Password for %s: " (or db keepass-mode-db))))
 
 (defun keepass-mode-show (group)
   "Show a Keepass entry at GROUP."
   (let* ((entry (keepass-mode-concat-group-path group))
-        (output (replace-regexp-in-string "Password: .+" "Password: *************" (keepass-mode-get-entry entry))))
+         (output (replace-regexp-in-string "Password: .+" "Password: *************" (keepass-mode-get-entry entry))))
     (switch-to-buffer (format "*keepass %s %s*" keepass-mode-db entry))
     (insert output)
     (read-only-mode)))
@@ -142,25 +165,50 @@ large KeePass database file."
 (add-to-list 'auto-mode-alist '("\\.kdbx\\'" . keepass-mode))
 (add-to-list 'auto-mode-alist '("\\.kdb\\'" . keepass-mode))
 
-(defconst keepass-mode-output-buffer "*keepass-mode-command-output*"
-  "Buffer name used for the keepassxc-cli command output.")
-
 (defun keepass-mode-call-command (group command)
   "Call the keepassxc-cli command and return its output.
 GROUP and COMMAND are passed to `keepass-mode-command'.  They are strings with
 the group to process (the directory) and the keepass command (for example:
 \"ls\", \"show\")."
-  (let ((password (shell-quote-argument keepass-mode-password))
-        (filepath keepass-mode-db))
+  (let* ((password keepass-mode-password)
+         (filepath keepass-mode-db)
+         (command-line (concat "bash -o pipefail -c \"" (keepass-mode-command group command filepath) "\""))
+         (return-value 0))
+
     (with-current-buffer (get-buffer-create keepass-mode-output-buffer)
       (delete-region (point-min) (point-max)))
+
     (with-temp-buffer
       (insert password)
-      (call-shell-region (point-min) (point-max)
-                         (keepass-mode-command group command filepath)
-                         t keepass-mode-output-buffer))
-    (with-current-buffer keepass-mode-output-buffer
-      (buffer-string))))
+
+      ;; Enforcing part
+      (setq return-value (call-shell-region (point-min) (point-max) command-line nil keepass-mode-output-buffer))
+      (when keepass-mode-force-valid-password
+        (while (/= return-value 0)
+          (setq password (keepass-mode-ask-password filepath))
+          (delete-region (point-min) (point-max))
+          (insert password)
+
+          (with-current-buffer (get-buffer-create keepass-mode-output-buffer)
+            (when keepass-mode-debug
+              (let ((output-content (buffer-string)))
+                (keepass-mode~log-debug output-content)))
+            (delete-region (point-min) (point-max)))
+
+          (setq command-line (concat "bash -o pipefail -c \"" (keepass-mode-command group command filepath) "\""))
+          (setq return-value (call-shell-region (point-min) (point-max) command-line nil keepass-mode-output-buffer)))))
+
+    (with-current-buffer (find-file-noselect filepath)
+      (setq-local keepass-mode-password password))
+
+    (with-current-buffer (get-buffer-create keepass-mode-output-buffer)
+      (when keepass-mode-debug
+        (let ((output-content (buffer-string)))
+          (keepass-mode~log-debug output-content)))
+      (setq return-value (buffer-string))
+      (kill-buffer))
+
+    return-value))
 
 (defun keepass-mode-get (field entry)
   "Retrieve FIELD from ENTRY."
