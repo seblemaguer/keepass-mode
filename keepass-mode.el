@@ -165,7 +165,7 @@ large KeePass database file."
 (add-to-list 'auto-mode-alist '("\\.kdbx\\'" . keepass-mode))
 (add-to-list 'auto-mode-alist '("\\.kdb\\'" . keepass-mode))
 
-(defun keepass-mode-call-command (group command)
+(defun keepass-mode-call-command (group command )
   "Call the keepassxc-cli command and return its output.
 GROUP and COMMAND are passed to `keepass-mode-command'.  They are strings with
 the group to process (the directory) and the keepass command (for example:
@@ -212,7 +212,7 @@ the group to process (the directory) and the keepass command (for example:
 
 (defun keepass-mode-get (field entry)
   "Retrieve FIELD from ENTRY."
-  (keepass-mode-get-field field (keepass-mode-call-command (keepass-mode-quote-unless-empty entry) "show -s")))
+  (keepass-mode-get-field field (keepass-mode-call-command (keepass-mode-quote-unless-empty entry) "show -s --all")))
 
 (defun keepass-mode-get-entries (group)
   "Get entry list for GROUP."
@@ -231,7 +231,7 @@ the group to process (the directory) and the keepass command (for example:
 
 (defun keepass-mode-get-entry (entry)
   "Get ENTRY details."
-  (keepass-mode-call-command (keepass-mode-quote-unless-empty entry) "show"))
+  (keepass-mode-call-command (keepass-mode-quote-unless-empty entry) "show --all"))
 
 (defun keepass-mode-get-field (field entry)
   "Get FIELD from an ENTRY."
