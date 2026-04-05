@@ -175,6 +175,9 @@ the group to process (the directory) and the keepass command (for example:
          (command-line (concat "bash -o pipefail -c \"" (keepass-mode-command group command filepath) "\""))
          (return-value 0))
 
+    (when keepass-mode-debug
+      (keepass-mode~log-debug command-line))
+
     (with-current-buffer (get-buffer-create keepass-mode-output-buffer)
       (delete-region (point-min) (point-max)))
 
