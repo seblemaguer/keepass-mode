@@ -111,6 +111,34 @@ large KeePass database file."
   (interactive)
   (keepass-mode-copy "Password"))
 
+;;;###autoload
+(defun keepass-get-attribute (db entry attribute)
+  "Helper to retrieve the `attribute' of an `entry' from a keepass database `db' using keepass-mode helpers."
+  (with-current-buffer (find-file-noselect db)
+    (keepass-mode-get attribute entry)))
+
+;;;###autoload
+(defun keepass-get-password (db entry)
+  "Helper to retrieve the password of an `entry' from a keepass database `db' using keepass-mode helpers."
+  (keepass-get-attribute db entry "Password"))
+
+;;;###autoload
+(defun keepass-get-username (db entry)
+  "Helper to retrieve the username of an `entry' from a keepass database `db' using keepass-mode helpers."
+  (keepass-get-attribute db entry "UserName"))
+
+;;;###autoload
+(defun keepass-get-url (db entry)
+  "Helper to retrieve the URL of an `entry' from a keepass database `db' using keepass-mode helpers."
+  (keepass-get-attribute db entry "URL"))
+
+;;;###autoload
+(defun keepass-mode-search-entries (db term)
+  "Search entries matching a given term."
+  (with-current-buffer (find-file-noselect db)
+    ;; NOTE: tricking the system to think that the term is the group to avoid redefining all functions
+    (nbutlast (split-string (keepass-mode-call-command term "search") "\n" 1))))
+
 (defun keepass-mode-open ()
   "Open a Keepass file at GROUP."
   (let ((columns [("Key" 100)])
